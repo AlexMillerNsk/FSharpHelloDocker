@@ -1,6 +1,9 @@
 version: "3.9"
 services:
-  web:
-    build: .
+  webapp:
+    build: 
+      context: .
     ports:
       - "8080:8080"
+    volumes:
+      - .:/Public
