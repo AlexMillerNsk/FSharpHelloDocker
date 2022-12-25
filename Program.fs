@@ -11,7 +11,9 @@ open Suave.Utils
 open WebSocket
 open Suave.Sockets
 open Npgsql.FSharp
-
+open Fable.Remoting.Server
+open Fable.Remoting.Suave
+open Shared
 
 
 let connectionString : string =
@@ -22,29 +24,25 @@ let connectionString : string =
     |> Sql.port 5432
     |> Sql.formatConnectionString
 
-type User = {
-    Id: int;
-    Username: string;
-    Age: int
-}
 
-let readUsers (connectionString: string) : User list =
+
+let readCars (connectionString: string) : Car list =
     connectionString
     |> Sql.connect
-    |> Sql.query "SELECT * FROM users"
+    |> Sql.query "SELECT * FROM cars"
     |> Sql.execute (fun read ->
         {
-            Id = read.int "id"
-            Username = read.text "name"
-            Age = read.int "age"
+            Name = read.text "name"
+            Url = read.text "url"
         })
 
-let addUser (connectionString: string, name:string, age:int) : int =
-    connectionString
-    |> Sql.connect
-    |> Sql.query "INSERT INTO users (name, age) VALUES (@name, @age)"
-    |> Sql.parameters [ "@name", Sql.text name; "@age", Sql.int age ]
-    |> Sql.executeNonQuery
+
+//for user in users do
+//    printfn "User(%d) -> {%s}" user.Id user.Username
+
+let carsStore : ICarsStore = {
+    carsfrombase = readCars connectionString
+}
 
 
 type State = {Subscribers: WebSocket list}
@@ -52,6 +50,8 @@ type State = {Subscribers: WebSocket list}
 type Msg =
     | SendAll of ByteSegment
     | Subscribe of WebSocket
+
+    
 
 
 
@@ -88,25 +88,25 @@ let ws (webSocket : WebSocket) _ =
                 |> ByteSegment
             processor.Post(SendAll byteResponse )
             printfn $"ws{text}"
-            addUser (connectionString, text, 15)|>ignore
         | (Close, input, _) -> 
             printfn "good bye boi"
             processor.Post (SendAll (input|> ByteSegment ))
             let text = ASCII.toString input 
             printfn $"{text}"
             loop <- false
-            let users = readUsers connectionString
-            for user in users do
-                printfn "User(%d) -> {%s}" user.Id user.Username
         | _ -> ()
            }
-
+let fableWebApi : WebPart = 
+    Remoting.createApi()
+    |> Remoting.fromValue carsStore
+    |> Remoting.buildWebPart
 
 [<EntryPoint>]
 let main argv =
   let app =
     choose
-      [ GET >=> choose
+      [ fableWebApi
+        GET >=> choose
           [ path "/hello" >=> OK "helo get"
             path "/" >=> Files.browseFileHome "index.html" 
             path "/bundle.js" >=> Files.browseFileHome "bundle.js" 

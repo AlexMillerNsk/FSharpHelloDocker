@@ -10,9 +10,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Elmish.Bridge.Suave" Version="6.0.3" />
+    <PackageReference Include="Fable.Remoting.Suave" Version="4.32.0" />
     <PackageReference Include="FSharp.Json" Version="0.4.1" />
     <PackageReference Include="Npgsql.FSharp" Version="5.5.0" />
     <PackageReference Include="Suave" Version="2.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Shared.fsproj" />
   </ItemGroup>
 
 </Project>
